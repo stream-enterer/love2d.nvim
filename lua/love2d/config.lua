@@ -17,12 +17,27 @@ config.options = {}
 local function setup_lsp(library_path)
   local lspconfig_installed, lspconfig = pcall(require, "lspconfig")
   if lspconfig_installed then
+    -- Get current client if it exists
+    local current_config = {}
+    for _, client in pairs(vim.lsp.get_clients()) do
+      if client.name == "lua_ls" then
+        current_config = client.config.settings or {}
+        break
+      end
+    end
+    -- Prepare new settings by merging with current settings
+    local settings = vim.deepcopy(current_config)
+    -- Ensure the Lua table exists
+    settings.Lua = settings.Lua or {}
+    -- Ensure the workspace table exists
+    settings.Lua.workspace = settings.Lua.workspace or {}
+    -- Ensure the library table exists
+    settings.Lua.workspace.library = settings.Lua.workspace.library or {}
+    -- Add our library path
+    table.insert(settings.Lua.workspace.library, library_path)
+    -- Apply the merged settings
     lspconfig.lua_ls.setup({
-      settings = {
-        Lua = {
-          workspace = { library = { library_path } },
-        },
-      },
+      settings = settings,
     })
   else
     vim.notify("Install lspconfig to setup LSP for love2d", vim.log.levels.ERROR)
